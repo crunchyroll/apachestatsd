@@ -89,7 +89,7 @@ def main():
         hist = defaultdict(int)
         for c in line[len(prefix):]:
           hist[c] += 1
-        for c, val in hist.iteritems():
-          gauge('workers.%s' % scoreboard_key[c], val)
+        for c, stat in scoreboard_key.iteritems():
+          gauge('workers.%s' % stat, hist[c])
 
 main()
