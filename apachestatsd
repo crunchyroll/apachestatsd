@@ -1,0 +1,95 @@
+#!/usr/bin/python
+
+# cpennello 2015-09-10 Apache server-status -> StatsD.
+
+import os.path
+import socket
+import sys
+from collections import defaultdict
+from contextlib import closing
+from urllib2 import urlopen
+
+scoreboard_key = {
+  '_': 'waitingforconn',
+  'S': 'startingup',
+  'R': 'readingrequest',
+  'W': 'sendingreply',
+  'K': 'keepaliveread',
+  'D': 'dnslookup',
+  'C': 'closingconnection',
+  'L': 'logging',
+  'G': 'gracefullyfinishing',
+  'I': 'idleworkercleanup',
+  '.': 'noproc',
+}
+
+pathdefault = 'server-status'
+timeout = 1
+
+# Set up StatsD socket.
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.connect(('127.0.0.1', 8125))
+
+def gauge(stat, val):
+  sock.send('apache.server_status.%s:%s|g' % (stat, val))
+
+def usage():
+  sys.stderr.write('usage: %s [-h] [server-status-path]\n' %
+    os.path.basename(sys.argv[0]))
+  sys.stderr.write('  logs apache server stats to statsd.\n')
+  sys.stderr.write('  gives up after %s second%s.\n' %
+    (timeout, 's' if timeout != 1 else ''))
+  sys.stderr.write('  status-path defaults to "%s"\n' % pathdefault)
+  sys.exit(2)
+
+# extractint returns an integer value from a line of the Apache
+# server-status output if it matches the prefix.  It returns None
+# otherwise.
+def extractint(line, prefix):
+  if line.startswith(prefix):
+    return int(line[len(prefix):])
+  return None
+
+def main():
+  if len(sys.argv) == 2:
+    path = sys.argv[1]
+    if path == '-h': usage()
+  elif len(sys.argv) == 1:
+    path = pathdefault
+  else:
+    usage()
+
+  # "auto" is a line-based output, meant for scripts to parse easily.
+  url = 'http://127.0.0.1/%s?auto' % path
+  with closing(urlopen(url, timeout=timeout)) as u:
+    for line in u.read().split('\n'):
+      # Total Accesses: 4
+      # Total kBytes: 1
+      # CPULoad: .000461396
+      # Uptime: 6502
+      # ReqPerSec: .000615195
+      # BytesPerSec: .15749
+      # BytesPerReq: 256.2
+      # BusyWorkers: 1
+      # IdleWorkers: 7
+      # Scoreboard: ______W_........................................................................................................................................................................................................................................................
+
+      val = extractint(line, 'BusyWorkers: ')
+      if val is not None:
+        gauge('workers.busy', val)
+        continue
+
+      val = extractint(line, 'IdleWorkers: ')
+      if val is not None:
+        gauge('workers.idle', val)
+        continue
+
+      prefix = 'Scoreboard: '
+      if line.startswith(prefix):
+        hist = defaultdict(int)
+        for c in line[len(prefix):]:
+          hist[c] += 1
+        for c, val in hist.iteritems():
+          gauge('workers.%s' % scoreboard_key[c], val)
+
+main()
