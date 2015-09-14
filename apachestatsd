@@ -2,6 +2,10 @@
 
 # cpennello 2015-09-10 Apache server-status -> StatsD.
 
+# Uses a traditional HTTP connection to /server-status (or an alternate
+# path) to get the server status.  So if the server is heavily loaded,
+# or out of workers, this won't be that useful.
+
 import os.path
 import socket
 import sys
