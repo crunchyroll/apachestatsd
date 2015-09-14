@@ -10,17 +10,17 @@ from contextlib import closing
 from urllib2 import urlopen
 
 scoreboard_key = {
-  '_': 'waitingforconn',
+  '.': 'noproc',
   'S': 'startingup',
+  '_': 'waitingforconn',
   'R': 'readingrequest',
   'W': 'sendingreply',
   'K': 'keepaliveread',
+  'L': 'logging',
   'D': 'dnslookup',
   'C': 'closingconnection',
-  'L': 'logging',
   'G': 'gracefullyfinishing',
   'I': 'idleworkercleanup',
-  '.': 'noproc',
 }
 
 pathdefault = 'server-status'
