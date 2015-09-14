@@ -6,9 +6,6 @@
 #include "apr_shm.h"
 #include "apr_errno.h"
 #include "apr_general.h"
-#include "apr_lib.h"
-#include "apr_strings.h"
-#include "apr_time.h"
 
 #include "httpd.h"
 #include "scoreboard.h"
