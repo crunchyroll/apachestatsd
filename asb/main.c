@@ -100,7 +100,7 @@ int dump(const char *filename) {
 
   int i, j;
   for (i = 0; i < global->server_limit; ++i) {
-    worker_score *sub_servers = servers + i;
+    worker_score *sub_servers = servers + i * global->thread_limit;
     for (j = 0; j < global->thread_limit; ++j) {
       worker_score *server = sub_servers + j;
       unsigned char status = server->status;
